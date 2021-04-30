@@ -4,31 +4,61 @@ from ortools.linear_solver import pywraplp
 import numpy as np
 import names
 from collections import OrderedDict
+import pandas as pd
 
 
-def main():
-    solver = pywraplp.Solver('SolveAssignmentProblem',
-                             pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+def create_random_dataframe():
+    """Create a random data frame.
 
+    Returns:
+        pd.DataFrame: dataframe
+    """
     # number and names of teams
     nteam = 4
     teams = ['Exact Science', 'Life Science',
              'Environement', 'Humanities']
 
     # probability of each team preference
-    pteams = [0.6, 0.15, 0.15, 0.1]
+    pteams = [0.5, 0.2, 0.2, 0.1]
 
     # number of worker name and preference
-    nworker = 40
-    name, pref = [], []
-    for i in range(nworker):
-        name.append(names.get_full_name())
-        pref.append(np.random.choice(4, 4, p=pteams, replace=False))
+    nworker = 47
+    workers_data = []
 
-    # create the cost matrix
-    cost = np.zeros((nteam, nworker))
-    for iw in range(nworker):
-        cost[:, iw] = pref[iw]
+    # create the array
+    for i in range(nworker):
+        data = []
+        data.append(names.get_full_name())
+        pref = 10*np.random.choice(4, 4, p=pteams,
+                                   replace=False)
+
+        data += pref.tolist()
+        workers_data.append(data)
+
+    # return DF
+    return pd.DataFrame(workers_data, columns=['Name']+teams)
+
+
+def solve(df, team_size_max=15):
+    """Solve the assignement problem
+
+    Args:
+        df (pd.DataFrame): input data
+        team_size_max (int, optional): max size of the teams. Defaults to 15.
+    """
+
+    # init the solver
+    solver = pywraplp.Solver('SolveAssignmentProblem',
+                             pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+
+    # convert the dataframe
+    data = df.to_numpy()
+    name = data[:, 0]
+    cost = data[:, 1:].T
+
+    # size of the problem
+    nworker = len(name)
+    nteam = cost.shape[0]
 
     # save a np copy and transform to list
     cost_array = cost
@@ -38,11 +68,10 @@ def main():
     worker_size = [1]*nworker
 
     # Maximum total of worker per team
-    team_size_max = 10
+    teams = df.columns.to_list()[1:]
 
     # Variables
     x = {}
-
     for i in range(nteam):
         for j in range(nworker):
             x[i, j] = solver.IntVar(0, 1, 'x[%i,%i]' % (i, j))
@@ -54,7 +83,6 @@ def main():
                                for j in range(nworker)]) <= team_size_max)
 
     # Each task is assigned to at least one worker.
-
     for j in range(nworker):
         solver.Add(solver.Sum([x[i, j]
                                for i in range(nteam)]) >= 1)
@@ -64,14 +92,18 @@ def main():
     sol = solver.Solve()
 
     print('Minimum cost = ', solver.Objective().Value())
-    fmt_name = "{name:15s}"
+    fmt_name = "{name:25s}"
+    fmt_idx = "{idx: 3d}"
     for i in range(nteam):
-        print('\n=== ', teams[i])
+        print('\n=== ', teams[i], ": ")
+        iw = 1
         for j in range(nworker):
             if x[i, j].solution_value() > 0:
-                print('\t', fmt_name.format(name=name[j]), '\tCost = ', cost[i]
-                      [j], '\tPref =', cost_array[:, j])
+                print('\t', fmt_idx.format(idx=iw), '.', fmt_name.format(name=name[j]), '\tCost = ', cost[i]
+                      [j], '\t', cost_array[:, j])
+                iw += 1
 
 
 if __name__ == '__main__':
-    main()
+    df = create_random_dataframe()
+    solve(df, team_size_max=15)
