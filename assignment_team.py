@@ -5,6 +5,7 @@ import numpy as np
 import names
 from collections import OrderedDict
 import pandas as pd
+from string import digits
 
 
 def create_random_dataframe():
@@ -39,7 +40,7 @@ def create_random_dataframe():
     return pd.DataFrame(workers_data, columns=['Name']+teams)
 
 
-def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, default_cost=100):
+def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, default_cost=100, debug=False):
     """Creates the dataframe from the excel sheet
 
     Args:
@@ -63,14 +64,16 @@ def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, def
         if first_choice in sections:
             pref[sections[first_choice]] = cost_first_choice
         else:
-            print(name, ' 1st choice (',
-                  first_choice, ') not recognized')
+            if debug:
+                print(name, ' 1st choice (',
+                      first_choice, ') not recognized')
 
         if second_choice in sections:
             pref[sections[second_choice]] = cost_second_choice
         else:
-            print(name, ' 2nd choice (',
-                  second_choice, ') not recognized')
+            if debug:
+                print(name, ' 2nd choice (',
+                      second_choice, ') not recognized')
 
         return pref
 
@@ -94,7 +97,7 @@ def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, def
     return pd.DataFrame(workers_data, columns=['Name']+list(sections.keys()))
 
 
-def solve(df, team_size_max=15):
+def solve(df, team_size_max=15, debug=False):
     """Solve the assignement problem
 
     Args:
@@ -150,16 +153,39 @@ def solve(df, team_size_max=15):
     fmt_name = "{name:25s}"
     fmt_idx = "{idx: 3d}"
 
+    team_compo = {t: ['']*team_size_max for t in teams}
     for i in range(nteam):
-        print('\n=== ', teams[i], ": ")
+        if debug:
+            print('\n=== ', teams[i], ": ")
         iw = 1
         for j in range(nworker):
             if x[i, j].solution_value() > 0:
-                print('\t', fmt_idx.format(idx=iw), '.', fmt_name.format(name=name[j]), '\tCost = ', cost[i]
-                      [j], '\t', cost_array[:, j])
+                if debug:
+                    print('\t', fmt_idx.format(idx=iw), '.', fmt_name.format(name=name[j]), '\tCost = ', cost[i]
+                          [j], '\t', cost_array[:, j])
+                team_compo[teams[i]][iw-1] = name[j] + \
+                    ' ' + str(cost[i][j])
                 iw += 1
+    return pd.DataFrame(team_compo), solver.Objective().Value()
+
+
+def estimate_cost(team, pref):
+    """Estiamte the cost of a given team compo."""
+    total_cost = 0
+    for team_name in list(team.columns):
+        for eng in team[team_name]:
+            if isinstance(eng, str):
+                eng_name = eng.translate(
+                    str.maketrans('', '', digits)).strip()
+                cost = pref[pref['Name'] ==
+                            eng_name][team_name].values
+                if len(cost) > 0:
+                    total_cost += cost
+    print('Total cost = ', total_cost)
+    return total_cost
 
 
 if __name__ == '__main__':
     df = create_random_dataframe()
-    solve(df, team_size_max=15)
+    df = create_dataframe('total_overview_fixed_lars.xlsx')
+    team, cost = solve(df, team_size_max=15)
