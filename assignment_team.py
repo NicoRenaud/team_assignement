@@ -40,7 +40,7 @@ def create_random_dataframe():
     return pd.DataFrame(workers_data, columns=['Name']+teams)
 
 
-def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, default_cost=100, debug=False):
+def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, default_cost=100, only_engineer=False, debug=False):
     """Creates the dataframe from the excel sheet
 
     Args:
@@ -87,6 +87,8 @@ def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, def
     workers_data = []
 
     for d in all_data:
+        if only_engineer and 'Engineer' not in d[3]:
+            continue
         data = []
         name = get_name(d)
         data.append(name)
