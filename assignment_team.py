@@ -15,8 +15,8 @@ def create_random_dataframe():
     """
     # number and names of teams
     nteam = 4
-    teams = ['Exact Science', 'Life Science',
-             'Environement', 'Humanities']
+    teams = ['Natural Sciences & Engineering', 'Life Sciences',
+             'Environment & Sustainability', 'Social Sciences & Humanities']
 
     # probability of each team preference
     pteams = [0.5, 0.2, 0.2, 0.1]
@@ -37,6 +37,61 @@ def create_random_dataframe():
 
     # return DF
     return pd.DataFrame(workers_data, columns=['Name']+teams)
+
+
+def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, default_cost=100):
+    """Creates the dataframe from the excel sheet
+
+    Args:
+        path_file (str): excel file
+    """
+
+    def get_name(worker):
+        "Get the full name of the worker"
+        name, fam, part = worker[0], worker[1], worker[2]
+        if not isinstance(part, str):
+            return ' '.join([name, fam])
+        else:
+            return ' '.join([name, part, fam])
+
+    def get_pref(worker, name):
+
+        pref = [default_cost]*4
+        first_choice = worker[6]
+        second_choice = worker[7]
+
+        if first_choice in sections:
+            pref[sections[first_choice]] = cost_first_choice
+        else:
+            print(name, ' 1st choice (',
+                  first_choice, ') not recognized')
+
+        if second_choice in sections:
+            pref[sections[second_choice]] = cost_second_choice
+        else:
+            print(name, ' 2nd choice (',
+                  second_choice, ') not recognized')
+
+        return pref
+
+    sections = OrderedDict({'Natural Sciences & Engineering': 0,
+                            'Life Sciences': 1,
+                            'Environment & Sustainability': 2,
+                            'Social Sciences & Humanities': 3})
+
+    # import from excel
+    all_data = pd.read_excel(path_file).to_numpy()
+    workers_data = []
+
+    for d in all_data:
+        data = []
+        name = get_name(d)
+        data.append(name)
+        data += get_pref(d, name)
+        workers_data.append(data)
+
+    # return DF
+    return pd.DataFrame(workers_data, columns=['Name']+list(sections.keys()))
 
 
 def solve(df, team_size_max=15):
@@ -94,6 +149,7 @@ def solve(df, team_size_max=15):
     print('Minimum cost = ', solver.Objective().Value())
     fmt_name = "{name:25s}"
     fmt_idx = "{idx: 3d}"
+
     for i in range(nteam):
         print('\n=== ', teams[i], ": ")
         iw = 1
