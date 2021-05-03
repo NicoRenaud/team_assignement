@@ -12,6 +12,8 @@
 
 # Run
 
+Either use the jupyter-notebook or run :
+
 `python assignment_team.py`
 
 # Output
