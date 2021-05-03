@@ -4,6 +4,10 @@
 
 `pip install ortools`
 
+`pip install qgrid`
+`jupyter nbextension enable --py --sys-prefix qgrid`
+`jupyter nbextension enable --py --sys-prefix widgetsnbextension`
+
 # Run
 
 `python assignment_team.py`
