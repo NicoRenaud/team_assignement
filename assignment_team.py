@@ -99,6 +99,22 @@ def create_dataframe(path_file, cost_first_choice=10, cost_second_choice=20, def
     return pd.DataFrame(workers_data, columns=['Name']+list(sections.keys()))
 
 
+def modify(df, name, section, cost):
+    """change the cost in name/section
+
+    Args:
+        df (pandas.DataFrame) : dataframe
+        name ([str]): name of the worker
+        section (str): name of the section
+        cost (float): new cost
+    """
+
+    # get index
+    idx = df[df["Name"] == name].index.tolist()[0]
+    df.at[idx, section] = cost
+    return df
+
+
 def solve(df, team_size_max=15, debug=False):
     """Solve the assignement problem
 
