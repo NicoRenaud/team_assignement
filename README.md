@@ -10,6 +10,10 @@
 
 `jupyter nbextension enable --py --sys-prefix widgetsnbextension`
 
+If you have issues opening the .xlsx file install xlrd 1.2.0
+
+`pip install xlrd==1.2.0`
+
 # Run
 
 Either use the jupyter-notebook or run :
